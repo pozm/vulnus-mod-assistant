@@ -1,9 +1,8 @@
 name: updater test artifacts
 
 on:
-    push:
-		branches:
-			- 'master'
+  push:
+    branches: [ master ]
 
 jobs:
   build-artifacs:
