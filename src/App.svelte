@@ -1,11 +1,17 @@
+
 <script lang="ts">
+	import Modal from './lib/Modal.svelte';
 import { dialog,fs,invoke } from "@tauri-apps/api";
 
-import { fade, scale } from 'svelte/transition';
 import IndexPage from "./lib/IndexPage.svelte";
 import SettingsPage from "./lib/SettingsPage.svelte";
 import { Data } from "./lib/store";
-import { ShowModal, VulnusPath } from './lib/StoreData'
+import { ShowPathModal,ShowInstallModal, VulnusPath } from './lib/StoreData'
+import {event} from '@tauri-apps/api'
+import NotificationHandler from './lib/NotificationHandler.svelte';
+import { onDestroy, onMount } from 'svelte';
+import { checkBepinexInstall, installBepinex } from './lib/SharedFunctions';
+
 
 	let updatePath = "";
 	let PathActive = false;
@@ -13,7 +19,7 @@ import { ShowModal, VulnusPath } from './lib/StoreData'
 	awaitingData.then(data=>{
 		updatePath = data["Vulnus.path"]
 		if ((data["Vulnus.path"] ?? '') == '') {
-			ShowModal.set(true)
+			ShowPathModal.set(true)
 		} else {
 			VulnusPath.set(data["Vulnus.path"]);
 		}
@@ -22,7 +28,9 @@ import { ShowModal, VulnusPath } from './lib/StoreData'
 	function onModalSave() {
 		Data.Store.get.add("Vulnus.path", updatePath);
 		VulnusPath.set(updatePath);
-		ShowModal.set(false)
+		ShowPathModal.set(false)
+		checkBepinexInstall(true)
+		// ShowInstallModal.set(true);
 	}
 	function GetVulnusPath() {
 		console.log("GetVulnusPath");
@@ -43,39 +51,60 @@ import { ShowModal, VulnusPath } from './lib/StoreData'
 	}
 	let PagesMap = [IndexPage,SettingsPage]
 	let ShowPage = 0;
+
+	let interval;
+
+	// onMount(()=>{
+	// 	let bbb = 0;
+	// 	interval = setInterval(()=>{
+	// 		event.emit("client://notification",{title:"bruh",data:`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaapog${bbb++}`})
+
+	// 	},2e3)
+	// })
+
+	// onDestroy(()=>{
+	// 	clearInterval(interval)
+	// })
+
 </script>
 <div class="flex" >
-	{#if $ShowModal}
-		<div in:fade out:fade class="z-10 absolute w-screen h-screen bg-black/60" >
-			<div class="w-screen h-screen flex" >
-				<div in:scale out:scale class="m-auto center bg-zinc-800 ring-1 ring-zinc-600 rounded-xl w-[70] z-20 p-4" >
-					<h1 class="text-gray-200 text-2xl" >Hi,</h1>
-					<h3 class="text-gray-300 text-lg">It seems like this is your first time using <span class="text-pink-300" >Vulnus Mod Assistant</span></h3>
-					<div class="relative">
-						<label for="password" class="block text-sm font-medium text-gray-400" >Please tell us where your install is located</label>
-						<input on:blur={()=>{
-							PathActive=false;
-						}} on:focus={(v)=>{
-							PathActive=true
-						}} bind:value={updatePath} id="path" name="path" class={`appearance-none w-full text-neutral-200 placeholder-zinc-400 transition-colors bg-neutral-900 focus:outline-none focus:ring-pink-400 focus:border-pink-400 focus:ring-1 rounded-lg px-2 py-2 shadow-sm border ${PathIsInvalid ? "border-red-400 ring-red-400" : "border-zinc-600"}`} placeholder="Path of vulnus">
-						<button on:click={GetVulnusPath} class="absolute right-2 bottom-2.5 w-6 h-6" >
-							<svg xmlns="http://www.w3.org/2000/svg" class={`h-6 w-6 ${PathActive ? "text-pink-200" : "text-zinc-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-						  	</svg>
-						</button>
-					</div>
-					  <div class="flex justify-end" >
-						  {#if PathIsInvalid}
-							  <p class="mr-auto mt-2 text-sm text-red-400 select-none " >The path you have provided is is invalid </p>
-							  
-						  {/if}
-							<button disabled={PathIsInvalid} class="py-2 shadow-sm px-12 transition-colors hover:bg-green-600 text-gray-100 bg-emerald-500 disabled:bg-emerald-600/50 mt-2 rounded-lg" on:click="{onModalSave}">Save</button>
-					  </div>
-				</div>
-
-			</div>
+	<NotificationHandler/>
+	<Modal show={$ShowPathModal}>
+		<h1 class="text-gray-200 text-2xl" >Hi,</h1>
+		<h3 class="text-gray-300 text-lg">It seems like this is your first time using <span class="text-pink-300" >Vulnus Mod Assistant</span></h3>
+		<div class="relative">
+			<label for="password" class="block text-sm font-medium text-gray-400" >Please tell us where your install is located</label>
+			<input on:blur={()=>{
+				PathActive=false;
+			}} on:focus={(v)=>{
+				PathActive=true
+			}} bind:value={updatePath} id="path" name="path" class={`appearance-none w-full text-neutral-200 placeholder-zinc-400 transition-colors bg-neutral-900 focus:outline-none focus:ring-pink-400 focus:border-pink-400 focus:ring-1 rounded-lg px-2 py-2 shadow-sm border ${PathIsInvalid ? "border-red-400 ring-red-400" : "border-zinc-600"}`} placeholder="Path of vulnus">
+			<button on:click={GetVulnusPath} class="absolute right-2 bottom-2.5 w-6 h-6" >
+				<svg xmlns="http://www.w3.org/2000/svg" class={`h-6 w-6 ${PathActive ? "text-pink-200" : "text-zinc-600"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+				</svg>
+			</button>
 		</div>
-	{/if}
+		<div class="flex justify-end" >
+			{#if PathIsInvalid}
+				<p class="mr-auto mt-2 text-sm text-red-400 select-none " >The path you have provided is is invalid </p>
+				
+			{/if}
+			<button disabled={PathIsInvalid} class="py-2 shadow-sm px-12 transition-colors hover:bg-green-600 text-gray-100 bg-emerald-500 disabled:bg-emerald-600/50 mt-2 rounded-lg" on:click="{onModalSave}">Save</button>
+		</div>
+	</Modal>
+	<Modal show={$ShowInstallModal} prematureClose={true} >
+		<h1 class="text-gray-200 text-2xl" >Hi,</h1>
+		<h3 class="text-gray-300 text-lg max-w-lg">It seems like you don't have bepinex installed, since it is required to use mods, would you like to install it?</h3>
+		<div class="flex justify-end space-x-4" >
+
+			<button class="py-2 shadow-sm px-12 transition-colors hover:bg-red-600 text-gray-100 bg-red-500 disabled:bg-red-600/50 mt-2 rounded-lg" on:click={()=>ShowInstallModal.set(false)}>No</button>
+			<button class="py-2 shadow-sm px-12 transition-colors hover:bg-green-600 text-gray-100 bg-emerald-500 disabled:bg-emerald-600/50 mt-2 rounded-lg" on:click={()=>{
+				installBepinex();
+				ShowInstallModal.set(false);
+			}}>Yes</button>
+		</div>
+	</Modal>
 	<div class="min-h-screen w-20 bg-zinc-800 flex flex-col" >
 		<div class="mx-auto py-2" on:click={()=>ShowPage=0} >
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-14 w-14 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
