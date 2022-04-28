@@ -1,6 +1,9 @@
 # vulnus mod assistant
-
 Allows for installing mods in vulnus easily.
+
+## 🚧 ARCHIVED 🚧
+please use the [mod launcher](https://github.com/pozm/vulnus-launcher)
+
 
 ## how to use
 
