@@ -21,7 +21,7 @@ fn check_dir_exists(direc:&str) -> bool {
 }
 #[tauri::command]
 async fn install_bepinex(vulnus_dir:String) -> bool {
-	let bytes = reqwest::get("https://builds.bepinex.dev/projects/bepinex_be/557/BepInEx_UnityMono_x64_da48b77_6.0.0-be.557.zip").await.unwrap().bytes().await.unwrap();
+	let bytes = reqwest::get("https://cdn.discordapp.com/attachments/649995055603384320/968213010197925898/UnityIL2CPP_x64.zip").await.unwrap().bytes().await.unwrap();
 	let mut read = Cursor::new(bytes.to_vec());
 	let mut zip = zip::ZipArchive::new(&mut read).unwrap();
 

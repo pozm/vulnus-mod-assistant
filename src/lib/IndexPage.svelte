@@ -6,7 +6,7 @@ import { Data } from "./store";
 
 
 
-	let metaData = "https://gist.githubusercontent.com/pozm/762df1b57718a53bc55a0ffa3dea47d2/raw/055603256d9c6bb24d0036f85b92dea3bb6ddfc1/pog.json";
+	let metaData = "https://gist.githubusercontent.com/pozm/762df1b57718a53bc55a0ffa3dea47d2/raw/pog.json";
 
 	let mods = http.fetch<Modlist>(metaData)
 
